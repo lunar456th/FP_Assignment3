@@ -41,6 +41,15 @@ typedef struct _professors
 	int salary;
 }Professors;
 
+typedef struct join_block
+{
+	char studentName[20];
+	unsigned int studentID;
+	float score;
+	unsigned int advisorProfessorID;
+	char professorName[20];
+	int salary;
+}JoinBlock;
 
 typedef struct student_block
 {
@@ -704,13 +713,77 @@ void rangeSearch(Node*& root, float fromKey, float toKey, string type)
 }
 
 
-//db파일????
 void join() {
+
+	// for each block br of f do
+	// get blocck br
+	// for each block bs of s do
+	// get block bs
+
+	// for each tuple tr in br do
+	// for each tuple ts in bs do
+			//check it (tr, ts) satisfy the join condition
+			//if they do, add tr*ts to the result
+
+	JoinBlock * joinBlock = new JoinBlock();
+	FILE * fp1 = fopen("query.res", "a");
+	fseek(fp1, 0, SEEK_SET);
+
+	int numofstudentblock = 0;
+	int numofprofessorblock = 0;
+
+	FILE * fps = fopen("Students.DB", "rb");
+
+	fseek(fps, 0, SEEK_END);
+	numofstudentblock = ftell(fps) / sizeof(StudentBlock);
+
+	fseek(fps, 0, SEEK_SET);
+
+	FILE * fpp = fopen("Professors.DB", "rb");
+
+	fseek(fpp, 0, SEEK_END);
+	numofprofessorblock = ftell(fpp) / sizeof(ProfessorBlock);
+
+	fseek(fpp, 0, SEEK_SET);
+
+	for (int s = 0; s < numofstudentblock; s++) {
+		StudentBlock * studentBlock = new StudentBlock();
+		fread(studentBlock, sizeof(StudentBlock), 1, fps);
+		fseek(fpp, 0, SEEK_SET);
+
+		for (int p = 0; p < numofprofessorblock; p++) {
+			ProfessorBlock * professorBlock = new ProfessorBlock();
+			fread(professorBlock, sizeof(ProfessorBlock), 1, fpp);
+
+			for (int tus = 0; tus < sizeof(StudentBlock) / sizeof(Students); tus++) {
+				for (int tup = 0; tup < sizeof(ProfessorBlock) / sizeof(Professors); tup++) {
+
+					if (professorBlock->records[tup].professorID == 3 && studentBlock->records[tus].studentID == 31795)
+					{
+						printf("");
+					}
+
+					if (studentBlock->records[tus].studentID != 0 && studentBlock->records[tus].advisorID == professorBlock->records[tup].professorID) {
+						joinBlock->studentID = studentBlock->records[tus].studentID;
+						strcpy(joinBlock->studentName, studentBlock->records[tus].name);
+						joinBlock->score = studentBlock->records[tus].score;
+						joinBlock->advisorProfessorID = professorBlock->records[tup].professorID;
+						strcpy(joinBlock->professorName, professorBlock->records[tup].name);
+						joinBlock->salary = professorBlock->records[tup].salary;
+
+						fprintf(fp1, "%d %s %f %d %s %d\n", joinBlock->studentID, joinBlock->studentName, joinBlock->score, joinBlock->advisorProfessorID, joinBlock->professorName, joinBlock->salary);
+					}
+
+				}
+			}
+
+		}
+
+	}
 
 
 
 }
-
 
 int getQueryData(string*& querySet) {
 
@@ -841,7 +914,7 @@ int main()
 
 
 	rangeSearch(professorRoot, 100041.0, 100500.0, "Professors");
-
+	join();
 
 
 	/*
