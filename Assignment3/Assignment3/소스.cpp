@@ -52,16 +52,6 @@ typedef struct professor_block
 	Professors records[BLOCKSIZE / sizeof(Professors)];
 }ProfessorBlock;
 
-typedef struct join_block
-{
-	char studentName[20];
-	unsigned int studentID;
-	float score;
-	unsigned int advisorProfessorID;
-	char professorName[20];
-	int salary;
-}JoinBlock;
-
 
 typedef struct _hashMap {
 	int key;
@@ -633,10 +623,83 @@ void exactSearch(Directory directory, int key, int hashMapSize, string type) {
 
 
 //인덱스파일
-void rangeSearch(Node*& root, float from, float to, string type) {
+void rangeSearch(Node*& root, float fromKey, float toKey, string type)
+{
+	FILE * fout = fopen("query.res", "a");
+	Node *thisNode;
+	int i;
+	// key가 존재하는지 확인
+	if ((thisNode = FindKey(fromKey, 1, root)) == NULL)
+	{
+		printf("Key = %.1f\n", fromKey);
+		puts("키가 존재하지 않습니다.\n");
+		return;
+	}
 
+	// key 값과 같은 Key 가 있는지 확인
+	for (i = 0; i < DEGREE; i++)
+		if (fabsf(thisNode->node.leafNode.key[i] - fromKey) < EPS)
+			break;
 
+	// from의 위치를 찾음
+	int fromBlockNum = thisNode->node.leafNode.data[i];
+	printf("Key = %.f\n", fromKey);
+	printf("BlockNumber = %d\n", fromBlockNum);
 
+	// from부터 to까지 읽으면서 해당 블록 가져옴
+	map<float, int> duplicate; // 중복 제거용
+
+	while (thisNode != NULL)
+	{
+		FILE * fp;
+		if (type == "Students")
+		{
+			fp = fopen("Students.DB", "rb");
+			for (; fabsf(thisNode->node.leafNode.key[i] - toKey) < EPS || thisNode->node.leafNode.key[i] < toKey; i++)
+			{
+				fseek(fp, thisNode->node.leafNode.data[i], SEEK_SET); // 파일 커서 옮겨서 블록 읽어옴
+				StudentBlock * records = new StudentBlock();
+				fread((char*)records, sizeof(StudentBlock), 1, fp);
+				for (int j = 0; j < studentCnt / numOfStudentRecords + 1; j++) // 그 안에 레코드 하나씩 읽음
+				{
+					if ((fromKey < records->records[j].score && records->records[j].score < toKey) || fabsf(records->records[j].score - fromKey) < EPS || fabsf(records->records[j].score - toKey) < EPS)
+					{
+						map<float, int>::iterator it = duplicate.find(records->records[j].score);
+						if (it == duplicate.end())
+						{
+							duplicate.insert(pair<float, int>(records->records[j].score, records->records[j].studentID));
+							fprintf(fout, "%d %s %f %d\n", records->records[j].studentID, records->records[j].name, records->records[j].score, records->records[j].advisorID);
+							cout << records->records[j].studentID << " " << records->records[j].name << " " << records->records[j].score << " " << records->records[j].advisorID << " " << endl;
+						}
+					}
+				}
+			}
+		}
+		else if (type == "Professors")
+		{
+			fp = fopen("Professors.DB", "rb");
+			for (; fabsf(thisNode->node.leafNode.key[i] - toKey) < EPS || thisNode->node.leafNode.key[i] < toKey; i++)
+			{
+				fseek(fp, thisNode->node.leafNode.data[i], SEEK_SET); // 파일 커서 옮겨서 블록 읽어옴
+				ProfessorBlock * records = new ProfessorBlock();
+				fread((char*)records, sizeof(ProfessorBlock), 1, fp);
+				for (int j = 0; j < professorCnt / numOfProfessorRecords + 1; j++) // 그 안에 레코드 하나씩 읽음
+				{
+					if ((fromKey < records->records[j].salary && records->records[j].salary < toKey) || fabsf(records->records[j].salary - fromKey) < EPS || fabsf(records->records[j].salary - toKey) < EPS)
+					{
+						map<float, int>::iterator it = duplicate.find(records->records[j].salary);
+						if (it == duplicate.end())
+						{
+							duplicate.insert(pair<float, int>(records->records[j].salary, records->records[j].professorID));
+							fprintf(fout, "%d %s %d\n", records->records[j].professorID, records->records[j].name, records->records[j].salary);
+							cout << records->records[j].professorID << " " << records->records[j].name << " " << records->records[j].salary << endl;
+						}
+					}
+				}
+			}
+		}
+		thisNode = thisNode->node.leafNode.next;
+	}
 
 }
 
@@ -644,76 +707,9 @@ void rangeSearch(Node*& root, float from, float to, string type) {
 //db파일????
 void join() {
 
-	// for each block br of f do
-	// get blocck br
-	// for each block bs of s do
-	// get block bs
-
-	// for each tuple tr in br do
-	// for each tuple ts in bs do
-			//check it (tr, ts) satisfy the join condition
-			//if they do, add tr*ts to the result
-
-	JoinBlock * joinBlock = new JoinBlock();
-	FILE * fp1 = fopen("query.res", "a");
-	fseek(fp1, 0, SEEK_SET);
-
-	int numofstudentblock = 0;
-	int numofprofessorblock = 0;
-
-	FILE * fps = fopen("Students.DB", "rb");
-
-	fseek(fps, 0, SEEK_END);
-	numofstudentblock = ftell(fps) / sizeof(StudentBlock);
-
-	fseek(fps, 0, SEEK_SET);
-
-	FILE * fpp = fopen("Professors.DB", "rb");
-
-	fseek(fpp, 0, SEEK_END);
-	numofprofessorblock = ftell(fpp) / sizeof(ProfessorBlock);
-
-	fseek(fpp, 0, SEEK_SET);
-
-	for (int s = 0; s < numofstudentblock; s++) {
-		StudentBlock * studentBlock = new StudentBlock();
-		fread(studentBlock, sizeof(StudentBlock), 1, fps);
-		fseek(fpp, 0, SEEK_SET);
-
-		for (int p = 0; p < numofprofessorblock; p++) {
-			ProfessorBlock * professorBlock = new ProfessorBlock();
-			fread(professorBlock, sizeof(ProfessorBlock), 1, fpp);
-
-			for (int tus = 0; tus < sizeof(StudentBlock) / sizeof(Students); tus++) {
-				for (int tup = 0; tup < sizeof(ProfessorBlock) / sizeof(Professors); tup++) {
-
-					if (professorBlock->records[tup].professorID == 3 && studentBlock->records[tus].studentID == 31795)
-					{
-						printf("");
-					}
-
-					if (studentBlock->records[tus].studentID != 0 && studentBlock->records[tus].advisorID == professorBlock->records[tup].professorID) {
-						joinBlock->studentID = studentBlock->records[tus].studentID;
-						strcpy(joinBlock->studentName, studentBlock->records[tus].name);
-						joinBlock->score = studentBlock->records[tus].score;
-						joinBlock->advisorProfessorID = professorBlock->records[tup].professorID;
-						strcpy(joinBlock->professorName, professorBlock->records[tup].name);
-						joinBlock->salary = professorBlock->records[tup].salary;
-
-						fprintf(fp1, "%d %s %f %d %s %d\n", joinBlock->studentID, joinBlock->studentName, joinBlock->score, joinBlock->advisorProfessorID, joinBlock->professorName, joinBlock->salary);
-					}
-
-				}
-			}
-
-		}
-
-	}
-
 
 
 }
-
 
 
 int getQueryData(string*& querySet) {
@@ -744,8 +740,8 @@ int main()
 	initBPlusTree(professorRoot);
 	initStack();
 
-	studentCnt = getStudentData(writeStudentBlocks, "student_data2.csv");
-	professorCnt = getProfessorData(writeProfessorBlocks, "prof_data2.csv");
+	studentCnt = getStudentData(writeStudentBlocks, "student_data.csv");
+	professorCnt = getProfessorData(writeProfessorBlocks, "prof_data.csv");
 	insertStudentDB(writeStudentBlocks, studentCnt);
 	insertProfessorDB(writeProfessorBlocks, professorCnt);
 
@@ -843,7 +839,11 @@ int main()
 	Node* readStudentScoreIdx = new Node[DEGREE];
 	Node* readProfessorSalaryIdx = new Node[DEGREE];
 
-	join();
+
+	rangeSearch(professorRoot, 100041.0, 100500.0, "Professors");
+
+
+
 	/*
 
 	while (1) {
@@ -913,7 +913,7 @@ int main()
 
 		}
 	}
-		break;
+	break;
 	case 8:
 	return 0;
 	break;
