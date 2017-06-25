@@ -17,8 +17,8 @@
 using namespace std;
 
 #define BLOCKSIZE 4096
-#define DEGREE 510 // 3ÀÌ»óÀ¸·Î ÇÒ °Í, 510ÀÌ¸é 4096Byte·Î ¼³Á¤µÊ
-#define MAX 30  // ¸Ş¸ğ¸® ÇØÁ¦ÇÏ±â À§ÇÑ ½ºÅÃÅ©±â 
+#define DEGREE 510 // 3ì´ìƒìœ¼ë¡œ í•  ê²ƒ, 510ì´ë©´ 4096Byteë¡œ ì„¤ì •ë¨
+#define MAX 30  // ë©”ëª¨ë¦¬ í•´ì œí•˜ê¸° ìœ„í•œ ìŠ¤íƒí¬ê¸° 
 #define LEAF 1
 #define INDEX 2
 #define FULL 1
@@ -41,6 +41,15 @@ typedef struct _professors
 	int salary;
 }Professors;
 
+typedef struct join_block
+{
+	char studentName[20];
+	unsigned int studentID;
+	float score;
+	unsigned int advisorProfessorID;
+	char professorName[20];
+	int salary;
+}JoinBlock;
 
 typedef struct student_block
 {
@@ -167,7 +176,7 @@ public:
 	int hashPrefix;
 	vector<Bucket*> buckets;
 
-	//Áõ°¡µÈ hashPrefix¸Â°Ô ¹öÅ¶³Ñ¹ö Ãß°¡
+	//ì¦ê°€ëœ hashPrefixë§ê²Œ ë²„í‚·ë„˜ë²„ ì¶”ê°€
 	int pairIndex(int bucketNum, int hashPrefix) {
 		return bucketNum ^ (1 << (hashPrefix - 1));
 	}
@@ -573,7 +582,7 @@ int writeProfessorIndexFile(FILE *& fout)
 
 
 
-//ÇØ½ÃÆÄÀÏ
+//í•´ì‹œíŒŒì¼
 void exactSearch(Directory directory, int key, int hashMapSize, string type) {
 
 	map<int, int>::iterator it;
@@ -583,7 +592,7 @@ void exactSearch(Directory directory, int key, int hashMapSize, string type) {
 	map<int, int> hashTable = directory.buckets[bucketNum]->hashTable;
 	it = hashTable.find(key);
 
-	if (it != hashTable.end()) // Ã£¾ÒÀ» °æ¿ì
+	if (it != hashTable.end()) // ì°¾ì•˜ì„ ê²½ìš°
 	{
 
 		printf("%d %d\n", it->first, it->second);
@@ -622,32 +631,32 @@ void exactSearch(Directory directory, int key, int hashMapSize, string type) {
 }
 
 
-//ÀÎµ¦½ºÆÄÀÏ
+//ì¸ë±ìŠ¤íŒŒì¼
 void rangeSearch(Node*& root, float fromKey, float toKey, string type)
 {
 	FILE * fout = fopen("query.res", "a");
 	Node *thisNode;
 	int i;
-	// key°¡ Á¸ÀçÇÏ´ÂÁö È®ÀÎ
+	// keyê°€ ì¡´ì¬í•˜ëŠ”ì§€ í™•ì¸
 	if ((thisNode = FindKey(fromKey, 1, root)) == NULL)
 	{
 		printf("Key = %.1f\n", fromKey);
-		puts("Å°°¡ Á¸ÀçÇÏÁö ¾Ê½À´Ï´Ù.\n");
+		puts("í‚¤ê°€ ì¡´ì¬í•˜ì§€ ì•ŠìŠµë‹ˆë‹¤.\n");
 		return;
 	}
 
-	// key °ª°ú °°Àº Key °¡ ÀÖ´ÂÁö È®ÀÎ
+	// key ê°’ê³¼ ê°™ì€ Key ê°€ ìˆëŠ”ì§€ í™•ì¸
 	for (i = 0; i < DEGREE; i++)
 		if (fabsf(thisNode->node.leafNode.key[i] - fromKey) < EPS)
 			break;
 
-	// fromÀÇ À§Ä¡¸¦ Ã£À½
+	// fromì˜ ìœ„ì¹˜ë¥¼ ì°¾ìŒ
 	int fromBlockNum = thisNode->node.leafNode.data[i];
 	printf("Key = %.f\n", fromKey);
 	printf("BlockNumber = %d\n", fromBlockNum);
 
-	// fromºÎÅÍ to±îÁö ÀĞÀ¸¸é¼­ ÇØ´ç ºí·Ï °¡Á®¿È
-	map<float, int> duplicate; // Áßº¹ Á¦°Å¿ë
+	// fromë¶€í„° toê¹Œì§€ ì½ìœ¼ë©´ì„œ í•´ë‹¹ ë¸”ë¡ ê°€ì ¸ì˜´
+	map<float, int> duplicate; // ì¤‘ë³µ ì œê±°ìš©
 
 	while (thisNode != NULL)
 	{
@@ -657,10 +666,10 @@ void rangeSearch(Node*& root, float fromKey, float toKey, string type)
 			fp = fopen("Students.DB", "rb");
 			for (; fabsf(thisNode->node.leafNode.key[i] - toKey) < EPS || thisNode->node.leafNode.key[i] < toKey; i++)
 			{
-				fseek(fp, thisNode->node.leafNode.data[i], SEEK_SET); // ÆÄÀÏ Ä¿¼­ ¿Å°Ü¼­ ºí·Ï ÀĞ¾î¿È
+				fseek(fp, thisNode->node.leafNode.data[i], SEEK_SET); // íŒŒì¼ ì»¤ì„œ ì˜®ê²¨ì„œ ë¸”ë¡ ì½ì–´ì˜´
 				StudentBlock * records = new StudentBlock();
 				fread((char*)records, sizeof(StudentBlock), 1, fp);
-				for (int j = 0; j < studentCnt / numOfStudentRecords + 1; j++) // ±× ¾È¿¡ ·¹ÄÚµå ÇÏ³ª¾¿ ÀĞÀ½
+				for (int j = 0; j < studentCnt / numOfStudentRecords + 1; j++) // ê·¸ ì•ˆì— ë ˆì½”ë“œ í•˜ë‚˜ì”© ì½ìŒ
 				{
 					if ((fromKey < records->records[j].score && records->records[j].score < toKey) || fabsf(records->records[j].score - fromKey) < EPS || fabsf(records->records[j].score - toKey) < EPS)
 					{
@@ -680,10 +689,10 @@ void rangeSearch(Node*& root, float fromKey, float toKey, string type)
 			fp = fopen("Professors.DB", "rb");
 			for (; fabsf(thisNode->node.leafNode.key[i] - toKey) < EPS || thisNode->node.leafNode.key[i] < toKey; i++)
 			{
-				fseek(fp, thisNode->node.leafNode.data[i], SEEK_SET); // ÆÄÀÏ Ä¿¼­ ¿Å°Ü¼­ ºí·Ï ÀĞ¾î¿È
+				fseek(fp, thisNode->node.leafNode.data[i], SEEK_SET); // íŒŒì¼ ì»¤ì„œ ì˜®ê²¨ì„œ ë¸”ë¡ ì½ì–´ì˜´
 				ProfessorBlock * records = new ProfessorBlock();
 				fread((char*)records, sizeof(ProfessorBlock), 1, fp);
-				for (int j = 0; j < professorCnt / numOfProfessorRecords + 1; j++) // ±× ¾È¿¡ ·¹ÄÚµå ÇÏ³ª¾¿ ÀĞÀ½
+				for (int j = 0; j < professorCnt / numOfProfessorRecords + 1; j++) // ê·¸ ì•ˆì— ë ˆì½”ë“œ í•˜ë‚˜ì”© ì½ìŒ
 				{
 					if ((fromKey < records->records[j].salary && records->records[j].salary < toKey) || fabsf(records->records[j].salary - fromKey) < EPS || fabsf(records->records[j].salary - toKey) < EPS)
 					{
@@ -704,13 +713,77 @@ void rangeSearch(Node*& root, float fromKey, float toKey, string type)
 }
 
 
-//dbÆÄÀÏ????
 void join() {
+
+	// for each block br of f do
+	// get blocck br
+	// for each block bs of s do
+	// get block bs
+
+	// for each tuple tr in br do
+	// for each tuple ts in bs do
+			//check it (tr, ts) satisfy the join condition
+			//if they do, add tr*ts to the result
+
+	JoinBlock * joinBlock = new JoinBlock();
+	FILE * fp1 = fopen("query.res", "a");
+	fseek(fp1, 0, SEEK_SET);
+
+	int numofstudentblock = 0;
+	int numofprofessorblock = 0;
+
+	FILE * fps = fopen("Students.DB", "rb");
+
+	fseek(fps, 0, SEEK_END);
+	numofstudentblock = ftell(fps) / sizeof(StudentBlock);
+
+	fseek(fps, 0, SEEK_SET);
+
+	FILE * fpp = fopen("Professors.DB", "rb");
+
+	fseek(fpp, 0, SEEK_END);
+	numofprofessorblock = ftell(fpp) / sizeof(ProfessorBlock);
+
+	fseek(fpp, 0, SEEK_SET);
+
+	for (int s = 0; s < numofstudentblock; s++) {
+		StudentBlock * studentBlock = new StudentBlock();
+		fread(studentBlock, sizeof(StudentBlock), 1, fps);
+		fseek(fpp, 0, SEEK_SET);
+
+		for (int p = 0; p < numofprofessorblock; p++) {
+			ProfessorBlock * professorBlock = new ProfessorBlock();
+			fread(professorBlock, sizeof(ProfessorBlock), 1, fpp);
+
+			for (int tus = 0; tus < sizeof(StudentBlock) / sizeof(Students); tus++) {
+				for (int tup = 0; tup < sizeof(ProfessorBlock) / sizeof(Professors); tup++) {
+
+					if (professorBlock->records[tup].professorID == 3 && studentBlock->records[tus].studentID == 31795)
+					{
+						printf("");
+					}
+
+					if (studentBlock->records[tus].studentID != 0 && studentBlock->records[tus].advisorID == professorBlock->records[tup].professorID) {
+						joinBlock->studentID = studentBlock->records[tus].studentID;
+						strcpy(joinBlock->studentName, studentBlock->records[tus].name);
+						joinBlock->score = studentBlock->records[tus].score;
+						joinBlock->advisorProfessorID = professorBlock->records[tup].professorID;
+						strcpy(joinBlock->professorName, professorBlock->records[tup].name);
+						joinBlock->salary = professorBlock->records[tup].salary;
+
+						fprintf(fp1, "%d %s %f %d %s %d\n", joinBlock->studentID, joinBlock->studentName, joinBlock->score, joinBlock->advisorProfessorID, joinBlock->professorName, joinBlock->salary);
+					}
+
+				}
+			}
+
+		}
+
+	}
 
 
 
 }
-
 
 int getQueryData(string*& querySet) {
 
@@ -839,13 +912,7 @@ int main()
 	Node* readStudentScoreIdx = new Node[DEGREE];
 	Node* readProfessorSalaryIdx = new Node[DEGREE];
 
-
-	rangeSearch(professorRoot, 100041.0, 100500.0, "Professors");
-
-
-
-	/*
-
+	
 	while (1) {
 	cout << "Select your operation\n 1.Show Students.hash\n 2.Show all the leaves of Students_score.idx\n 3.Show Stuents.DB\n"
 	<< " 4.Show Professors.hash\n 5.Show all the leaves of professor_salary.idx\n 6.Show Professor.DB\n 7.Read Query File\n 8.exit..\n>>>>>>";
@@ -978,10 +1045,10 @@ void SelectKey(float selectKey)
 	if ((thisNode = FindKey(selectKey, 1, studentRoot)) == NULL)
 	{
 		printf("Key = %.1f\n", selectKey);
-		puts("Å°°¡ Á¸ÀçÇÏÁö ¾Ê½À´Ï´Ù.\n");
+		puts("í‚¤ê°€ ì¡´ì¬í•˜ì§€ ì•ŠìŠµë‹ˆë‹¤.\n");
 		return;
 	}
-	// key °ª°ú °°Àº Key °¡ ÀÖ´ÂÁö È®ÀÎ
+	// key ê°’ê³¼ ê°™ì€ Key ê°€ ìˆëŠ”ì§€ í™•ì¸
 	for (i = 0; i < DEGREE; i++)
 		if (fabsf(thisNode->node.leafNode.key[i] - selectKey) < EPS)
 		{
@@ -992,36 +1059,36 @@ void SelectKey(float selectKey)
 void InsertKey4(Node *preNode, Node *nextNode, float addkey, Node *thisNode, Node *root)
 {
 	/*
-	InsertKey4 ÇÔ¼ö
-	ºĞÇÒÀÌ ÀÌ·ç¾îÁö´Â ³ëµå°¡ ÀÎµ¦½º ³ëµå ÀÏ ¶§ »ç¿ë
+	InsertKey4 í•¨ìˆ˜
+	ë¶„í• ì´ ì´ë£¨ì–´ì§€ëŠ” ë…¸ë“œê°€ ì¸ë±ìŠ¤ ë…¸ë“œ ì¼ ë•Œ ì‚¬ìš©
 
-	Node *preNode : Å° ¾ÕÂÊ¿¡ Ãß°¡ÇÒ Æ÷ÀÎÅÍ
-	Node *nextNode : Å° µÚÂÊ¿¡ Ãß°¡ÇÒ Æ÷ÀÎÅÍ
-	int addKey  : Å° ¹øÈ£
-	Node *thisNode : ºĞÇÒµÉ ÀÎµ¦½º ³ëµå
+	Node *preNode : í‚¤ ì•ìª½ì— ì¶”ê°€í•  í¬ì¸í„°
+	Node *nextNode : í‚¤ ë’¤ìª½ì— ì¶”ê°€í•  í¬ì¸í„°
+	int addKey  : í‚¤ ë²ˆí˜¸
+	Node *thisNode : ë¶„í• ë  ì¸ë±ìŠ¤ ë…¸ë“œ
 	*/
 	Node *addNode;
 	Node *addIndexNode;
 	Node *tempPoint[DEGREE + 1];
 	float tempKey[DEGREE];
 	int i, j;
-	// ÀÎµ¦½ºÀÇ Æ÷ÀÎÆ®¿Í Å°¸¦ º¹»ç
+	// ì¸ë±ìŠ¤ì˜ í¬ì¸íŠ¸ì™€ í‚¤ë¥¼ ë³µì‚¬
 	for (i = 0; i < DEGREE; i++)
 		tempPoint[i] = thisNode->node.indexNode.pointer[i];
 	for (i = 0; i < DEGREE - 1; i++)
 		tempKey[i] = thisNode->node.indexNode.key[i];
-	// Ãß°¡ÇÒ key °ªº¸´Ù Å« °ªÀ» Ã£À½
+	// ì¶”ê°€í•  key ê°’ë³´ë‹¤ í° ê°’ì„ ì°¾ìŒ
 	for (i = 0; i < DEGREE - 1; i++)
 	{
-		// ¸¸¾à °°Àº Å°°¡ Á¸ÀçÇÏ´ÂÁö È®ÀÎ 
+		// ë§Œì•½ ê°™ì€ í‚¤ê°€ ì¡´ì¬í•˜ëŠ”ì§€ í™•ì¸ 
 		if (fabsf(tempKey[i] - addkey) < EPS) return;
-		// ÇöÀç °¡¸®Å°°í ÀÖ´Â Key °¡ Ãß°¡ÇÒ Key º¸´Ù Å©°Å³ª 0ÀÎÁö È®ÀÎ
+		// í˜„ì¬ ê°€ë¦¬í‚¤ê³  ìˆëŠ” Key ê°€ ì¶”ê°€í•  Key ë³´ë‹¤ í¬ê±°ë‚˜ 0ì¸ì§€ í™•ì¸
 		if ((tempKey[i] > addkey) || (tempKey[i] == 0)) break;
 	}
-	// Ãß°¡ÇØ¾ß ÇÒ °÷ÀÌ ºñ¾îÀÖÁö ¾ÊÀ» ¶§
+	// ì¶”ê°€í•´ì•¼ í•  ê³³ì´ ë¹„ì–´ìˆì§€ ì•Šì„ ë•Œ
 	if (tempKey[i] != 0)
 	{
-		// Ãß°¡ÇÒ ÀÚ¸®¸¦ ºñ¿ì±âÀ§ÇØ ¿À¸¥ÂÊÀ¸·Î ½¬ÇÁÆ®
+		// ì¶”ê°€í•  ìë¦¬ë¥¼ ë¹„ìš°ê¸°ìœ„í•´ ì˜¤ë¥¸ìª½ìœ¼ë¡œ ì‰¬í”„íŠ¸
 		for (j = DEGREE; j > i; j--)
 			tempPoint[j] = tempPoint[j - 1];
 		for (j = DEGREE - 1; j > i; j--)
@@ -1030,7 +1097,7 @@ void InsertKey4(Node *preNode, Node *nextNode, float addkey, Node *thisNode, Nod
 	tempKey[i] = addkey;
 	tempPoint[i] = preNode;
 	tempPoint[i + 1] = nextNode;
-	// »õ·Î¿î ÀÎµ¦½º ³ëµå »ı¼º
+	// ìƒˆë¡œìš´ ì¸ë±ìŠ¤ ë…¸ë“œ ìƒì„±
 	addNode = (Node *)malloc(sizeof(Node));
 	memset((char *)addNode, 0, sizeof(Node));
 	addNode->type = INDEX;
@@ -1038,7 +1105,7 @@ void InsertKey4(Node *preNode, Node *nextNode, float addkey, Node *thisNode, Nod
 	memset((char *)thisNode, 0, sizeof(Node));
 	thisNode->type = INDEX;
 	thisNode->parent = addNode->parent;
-	// ¹İ¹İ¾¿ ³ª´©¾î thisNode , addNode¿¡ ÇÒ´ç ¶ÇÇÑ ÀÚ½Ä ³ëµå¿¡°Ô ºÎ¸ğ³ëµå ¾Ë¸²
+	// ë°˜ë°˜ì”© ë‚˜ëˆ„ì–´ thisNode , addNodeì— í• ë‹¹ ë˜í•œ ìì‹ ë…¸ë“œì—ê²Œ ë¶€ëª¨ë…¸ë“œ ì•Œë¦¼
 	for (i = 0; i < DEGREE / 2; i++)
 	{
 		thisNode->node.indexNode.pointer[i] = tempPoint[i];
@@ -1057,7 +1124,7 @@ void InsertKey4(Node *preNode, Node *nextNode, float addkey, Node *thisNode, Nod
 	addNode->node.indexNode.pointer[j] = tempPoint[i];
 	addNode->node.indexNode.pointer[j]->parent = addNode;
 
-	// ºÎ¸ğ³ëµå°¡ ¾ø´Ù¸é »ı¼º
+	// ë¶€ëª¨ë…¸ë“œê°€ ì—†ë‹¤ë©´ ìƒì„±
 	if (thisNode->parent == NULL)
 	{
 		addIndexNode = (Node *)malloc(sizeof(Node));
@@ -1066,47 +1133,47 @@ void InsertKey4(Node *preNode, Node *nextNode, float addkey, Node *thisNode, Nod
 		addIndexNode->node.indexNode.pointer[0] = thisNode;
 		addIndexNode->node.indexNode.pointer[1] = addNode;
 		addIndexNode->node.indexNode.key[0] = tempKey[DEGREE / 2];
-		// ºÎ¸ğ ³ëµå ¿¬°á
+		// ë¶€ëª¨ ë…¸ë“œ ì—°ê²°
 		thisNode->parent = addIndexNode;
 		addNode->parent = addIndexNode;
 		root = addIndexNode;
 	}
 	else
-		// ºÎ¸ğ ³ëµå°¡ ÀÖ´Ù¸é InsertKey3 ¸¦ ½ÇÇà
+		// ë¶€ëª¨ ë…¸ë“œê°€ ìˆë‹¤ë©´ InsertKey3 ë¥¼ ì‹¤í–‰
 		InsertKey3(thisNode, addNode, tempKey[DEGREE / 2], thisNode->parent, root);
 }
 void InsertKey3(Node *preNode, Node *nextNode, float addkey, Node *thisNode, Node *root)
 {
 	/*
-	InsertKey3 ÇÔ¼ö
-	ÀÎµ¦½º ³ëµå ÀÌ°í ³ëµå¿¡ ºó°ø°£ÀÌ ÀÖÀ» ¶§ »ç¿ë
+	InsertKey3 í•¨ìˆ˜
+	ì¸ë±ìŠ¤ ë…¸ë“œ ì´ê³  ë…¸ë“œì— ë¹ˆê³µê°„ì´ ìˆì„ ë•Œ ì‚¬ìš©
 
-	Node *preNode : Å° ¾ÕÂÊ¿¡ Ãß°¡ÇÒ Æ÷ÀÎÅÍ
-	Node *nextNode : Å° µÚÂÊ¿¡ Ãß°¡ÇÒ Æ÷ÀÎÅÍ
-	int addKey  : Å° ¹øÈ£
-	Node *thisNode : ¾î¶² ÀÎµ¦½º ³ëµå¿¡ Ãß°¡ÇÒ °ÍÀÎÁö
+	Node *preNode : í‚¤ ì•ìª½ì— ì¶”ê°€í•  í¬ì¸í„°
+	Node *nextNode : í‚¤ ë’¤ìª½ì— ì¶”ê°€í•  í¬ì¸í„°
+	int addKey  : í‚¤ ë²ˆí˜¸
+	Node *thisNode : ì–´ë–¤ ì¸ë±ìŠ¤ ë…¸ë“œì— ì¶”ê°€í•  ê²ƒì¸ì§€
 	*/
 	int i, j;
-	//thisNode °¡ ÀÎµ¦½º ³ëµå ÀÎÁö È®ÀÎ
+	//thisNode ê°€ ì¸ë±ìŠ¤ ë…¸ë“œ ì¸ì§€ í™•ì¸
 	if (thisNode->type != INDEX) return;
-	// ÀÎµ¦½º ³ëµå°¡ ²ËÂ÷ÀÖ´Ù¸é InsertKey4 ¸¦ ½ÇÇà
+	// ì¸ë±ìŠ¤ ë…¸ë“œê°€ ê½‰ì°¨ìˆë‹¤ë©´ InsertKey4 ë¥¼ ì‹¤í–‰
 	if (thisNode->full == FULL)
 	{
 		InsertKey4(preNode, nextNode, addkey, thisNode, root);
 		return;
 	}
-	// Ãß°¡ÇÒ key °ªº¸´Ù Å« °ªÀ» Ã£À½
+	// ì¶”ê°€í•  key ê°’ë³´ë‹¤ í° ê°’ì„ ì°¾ìŒ
 	for (i = 0; i < DEGREE - 1; i++)
 	{
-		// ¸¸¾à °°Àº Å°°¡ Á¸ÀçÇÏ´ÂÁö È®ÀÎ 
+		// ë§Œì•½ ê°™ì€ í‚¤ê°€ ì¡´ì¬í•˜ëŠ”ì§€ í™•ì¸ 
 		if (fabsf(thisNode->node.indexNode.key[i] - addkey) < EPS) return;
-		// ÇöÀç °¡¸®Å°°í ÀÖ´Â Key °¡ Ãß°¡ÇÒ Key º¸´Ù Å©°Å³ª 0ÀÎÁö È®ÀÎ
+		// í˜„ì¬ ê°€ë¦¬í‚¤ê³  ìˆëŠ” Key ê°€ ì¶”ê°€í•  Key ë³´ë‹¤ í¬ê±°ë‚˜ 0ì¸ì§€ í™•ì¸
 		if ((thisNode->node.indexNode.key[i] > addkey) || (thisNode->node.indexNode.key[i] == 0)) break;
 	}
-	// Ãß°¡ÇØ¾ß ÇÒ °÷ÀÌ ºñ¾îÀÖÁö ¾ÊÀ» ¶§
+	// ì¶”ê°€í•´ì•¼ í•  ê³³ì´ ë¹„ì–´ìˆì§€ ì•Šì„ ë•Œ
 	if (thisNode->node.indexNode.key[i] != 0)
 	{
-		// Ãß°¡ÇÒ ÀÚ¸®¸¦ ºñ¿ì±âÀ§ÇØ ¿À¸¥ÂÊÀ¸·Î ½¬ÇÁÆ®
+		// ì¶”ê°€í•  ìë¦¬ë¥¼ ë¹„ìš°ê¸°ìœ„í•´ ì˜¤ë¥¸ìª½ìœ¼ë¡œ ì‰¬í”„íŠ¸
 		for (j = DEGREE - 1; j > i; j--)
 			thisNode->node.indexNode.pointer[j] = thisNode->node.indexNode.pointer[j - 1];
 		for (j = DEGREE - 2; j > i; j--)
@@ -1115,40 +1182,40 @@ void InsertKey3(Node *preNode, Node *nextNode, float addkey, Node *thisNode, Nod
 	thisNode->node.indexNode.key[i] = addkey;
 	thisNode->node.indexNode.pointer[i] = preNode;
 	thisNode->node.indexNode.pointer[i + 1] = nextNode;
-	// Ãß°¡ ÇÑ µÚ ³ëµå°¡ °¡µæ Â÷ÀÖ´ÂÁö È®ÀÎ
+	// ì¶”ê°€ í•œ ë’¤ ë…¸ë“œê°€ ê°€ë“ ì°¨ìˆëŠ”ì§€ í™•ì¸
 	if (thisNode->node.indexNode.key[DEGREE - 2] != 0) thisNode->full = FULL;
 }
 void InsertKey2(float insertKey, int insertData, Node *thisNode, Node *root)
 {
 	/*
-	InsertKey2 ÇÔ¼ö
-	¸®ÇÁ³ëµåÀÌ°í ºĞÇÒ ÇÒ ¶§ »ç¿ë
+	InsertKey2 í•¨ìˆ˜
+	ë¦¬í”„ë…¸ë“œì´ê³  ë¶„í•  í•  ë•Œ ì‚¬ìš©
 
-	int insertKey  : Ãß°¡ÇÒ Å°
-	int insertData  : Ãß°¡ÇÒ µ¥ÀÌÅÍ
-	Node *thisNode  : ºĞÇÒ µÉ ³ëµå
+	int insertKey  : ì¶”ê°€í•  í‚¤
+	int insertData  : ì¶”ê°€í•  ë°ì´í„°
+	Node *thisNode  : ë¶„í•  ë  ë…¸ë“œ
 	*/
 	int i;
 	Node *addNode;
 	Node *addIndexNode;
-	// ÇöÀç ³ëµå°¡ ²Ë Â÷ÀÖ´ÂÁö È®ÀÎÇÑ´Ù.
+	// í˜„ì¬ ë…¸ë“œê°€ ê½‰ ì°¨ìˆëŠ”ì§€ í™•ì¸í•œë‹¤.
 	if (thisNode->full != FULL) return;
-	// ÇöÀç ³ëµå°¡ ¸®ÇÁ ³ëµå°¡ ¾Æ´Ï¶ó¸é Á¾·á
+	// í˜„ì¬ ë…¸ë“œê°€ ë¦¬í”„ ë…¸ë“œê°€ ì•„ë‹ˆë¼ë©´ ì¢…ë£Œ
 	if (thisNode->type != LEAF) return;
-	// ÇÏ³ªÀÇ ¸®ÇÁ ³ëµå »ı¼º ¹× ÃÊ±âÈ­
+	// í•˜ë‚˜ì˜ ë¦¬í”„ ë…¸ë“œ ìƒì„± ë° ì´ˆê¸°í™”
 	addNode = (Node *)malloc(sizeof(Node));
 	memset((char *)addNode, 0, sizeof(Node));
 	addNode->type = LEAF;
-	// ÇöÀç ³ëµåÀÇ Á¦ÀÏ ¸¶Áö¸· ºÎºĞÀ» »õ·Î¿î ³ëµå¿¡ »ğÀÔÇÑ´Ù.
+	// í˜„ì¬ ë…¸ë“œì˜ ì œì¼ ë§ˆì§€ë§‰ ë¶€ë¶„ì„ ìƒˆë¡œìš´ ë…¸ë“œì— ì‚½ì…í•œë‹¤.
 	InsertKey1(thisNode->node.leafNode.key[DEGREE - 1], thisNode->node.leafNode.data[DEGREE - 1], addNode, root);
-	// Ãß°¡ÇÑ Å°¿Í µ¥ÀÌÅÍ¸¦ Áö¿ì°í FULL »óÅÂ°¡ ¾Æ´Ï¹Ç·Î 0À¸·Î ¹Ù²Û´Ù.
+	// ì¶”ê°€í•œ í‚¤ì™€ ë°ì´í„°ë¥¼ ì§€ìš°ê³  FULL ìƒíƒœê°€ ì•„ë‹ˆë¯€ë¡œ 0ìœ¼ë¡œ ë°”ê¾¼ë‹¤.
 	thisNode->node.leafNode.key[DEGREE - 1] = 0;
 	thisNode->node.leafNode.data[DEGREE - 1] = 0;
 	thisNode->full = 0;
-	// ÇöÀç ³ëµå¿¡ »õ·Î¿î Å°¸¦ Ãß°¡ ½ÃÅ²´Ù.
+	// í˜„ì¬ ë…¸ë“œì— ìƒˆë¡œìš´ í‚¤ë¥¼ ì¶”ê°€ ì‹œí‚¨ë‹¤.
 	InsertKey1(insertKey, insertData, thisNode, root);
 	thisNode->full = FULL;
-	// ÇöÀç ³ëµåÀÇ Àı¹İÀ» Ãß°¡ ³ëµå¿¡ »ğÀÔÇÑ´Ù.
+	// í˜„ì¬ ë…¸ë“œì˜ ì ˆë°˜ì„ ì¶”ê°€ ë…¸ë“œì— ì‚½ì…í•œë‹¤.
 	for (i = DEGREE / 2 + 1; i < DEGREE; i++)
 	{
 		InsertKey1(thisNode->node.leafNode.key[i], thisNode->node.leafNode.data[i], addNode, root);
@@ -1157,11 +1224,11 @@ void InsertKey2(float insertKey, int insertData, Node *thisNode, Node *root)
 		thisNode->node.leafNode.data[i] = 0;
 	}
 	thisNode->full = 0;
-	// Æ÷ÀÎÅÍ ¿¬°á
+	// í¬ì¸í„° ì—°ê²°
 	addNode->node.leafNode.next = thisNode->node.leafNode.next;
 	thisNode->node.leafNode.next = addNode;
 	addNode->parent = thisNode->parent;
-	// ºÎ¸ğ ³ëµå°¡ ¾ø´Ù¸é »ı¼º
+	// ë¶€ëª¨ ë…¸ë“œê°€ ì—†ë‹¤ë©´ ìƒì„±
 	if (thisNode->parent == NULL)
 	{
 		addIndexNode = (Node *)malloc(sizeof(Node));
@@ -1170,136 +1237,474 @@ void InsertKey2(float insertKey, int insertData, Node *thisNode, Node *root)
 		addIndexNode->node.indexNode.pointer[0] = thisNode;
 		addIndexNode->node.indexNode.pointer[1] = addNode;
 		addIndexNode->node.indexNode.key[0] = thisNode->node.leafNode.key[DEGREE / 2];
-		// ºÎ¸ğ ³ëµå ¿¬°á
+		// ë¶€ëª¨ ë…¸ë“œ ì—°ê²°
 		thisNode->parent = addIndexNode;
 		addNode->parent = addIndexNode;
 		root = addIndexNode;
 	}
 	else
-		// ºÎ¸ğ ³ëµå°¡ ÀÖ´Ù¸é InsertKey3 ¸¦ ½ÇÇà
+		// ë¶€ëª¨ ë…¸ë“œê°€ ìˆë‹¤ë©´ InsertKey3 ë¥¼ ì‹¤í–‰
 		InsertKey3(thisNode, addNode, thisNode->node.leafNode.key[DEGREE / 2], thisNode->parent, root);
 }
 void InsertKey1(float insertKey, int insertData, Node *thisNode, Node *root)
 {
 	/*
-	InsertKey1 ÇÔ¼ö
-	¸®ÇÁ³ëµåÀÌ°í ³ëµå¿¡ ºó°ø°£ÀÌ ÀÖ¾î¼­ ±×³É Ãß°¡ÇÒ ¶§ »ç¿ë
+	InsertKey1 í•¨ìˆ˜
+	ë¦¬í”„ë…¸ë“œì´ê³  ë…¸ë“œì— ë¹ˆê³µê°„ì´ ìˆì–´ì„œ ê·¸ëƒ¥ ì¶”ê°€í•  ë•Œ ì‚¬ìš©
 
-	int insertKey : Ãß°¡ÇÒ Å°
-	int insertData : Ãß°¡ÇÒ µ¥ÀÌÅÍ
-	Node *thisNode : ¾î¶² ¸®ÇÁ ³ëµå¿¡ Ãß°¡ÇÒ °ÍÀÎÁö
+	int insertKey : ì¶”ê°€í•  í‚¤
+	int insertData : ì¶”ê°€í•  ë°ì´í„°
+	Node *thisNode : ì–´ë–¤ ë¦¬í”„ ë…¸ë“œì— ì¶”ê°€í•  ê²ƒì¸ì§€
 	*/
 	int i, j;
-	// thisNode °¡ NULL ÀÏ ¶§ Á¾·á
+	// thisNode ê°€ NULL ì¼ ë•Œ ì¢…ë£Œ
 	if (thisNode == NULL)
 	{
 		return;
 	}
-	// ³ëµå°¡ °¡µæ Â÷ÀÖÀ¸¸é InsertKey2 ½ÇÇà
+	// ë…¸ë“œê°€ ê°€ë“ ì°¨ìˆìœ¼ë©´ InsertKey2 ì‹¤í–‰
 	if (thisNode->full == FULL)
 	{
 		InsertKey2(insertKey, insertData, thisNode, root);
 		return;
 	}
-	// ¸¸¾à ³ëµå°¡ ¸®ÇÁ³ëµå°¡ ¾Æ´Ï¶ó¸é Á¾·á
+	// ë§Œì•½ ë…¸ë“œê°€ ë¦¬í”„ë…¸ë“œê°€ ì•„ë‹ˆë¼ë©´ ì¢…ë£Œ
 	if (thisNode->type != LEAF) return;
-	// Ãß°¡ÇÒ key °ªº¸´Ù Å« °ªÀ» Ã£À½
+	// ì¶”ê°€í•  key ê°’ë³´ë‹¤ í° ê°’ì„ ì°¾ìŒ
 	for (i = 0; i < DEGREE; i++)
 	{
-		// ¸¸¾à °°Àº Å°°¡ Á¸ÀçÇÏ¸é Á¾·á
+		// ë§Œì•½ ê°™ì€ í‚¤ê°€ ì¡´ì¬í•˜ë©´ ì¢…ë£Œ
 		if (fabsf(thisNode->node.leafNode.key[i] - insertKey) < EPS) return;
-		// ÇöÀç °¡¸®Å°°í ÀÖ´Â Key °¡ Ãß°¡ÇÒ Key º¸´Ù Å©°Å³ª 0ÀÎÁö È®ÀÎ
+		// í˜„ì¬ ê°€ë¦¬í‚¤ê³  ìˆëŠ” Key ê°€ ì¶”ê°€í•  Key ë³´ë‹¤ í¬ê±°ë‚˜ 0ì¸ì§€ í™•ì¸
 		if ((thisNode->node.leafNode.key[i] > insertKey) || (thisNode->node.leafNode.key[i] == 0)) break;
 	}
-	// Ãß°¡ÇÒ °÷ÀÌ ºñ¾îÀÖ¾î ÀÖÁö ¾ÊÀ» ¶§
+	// ì¶”ê°€í•  ê³³ì´ ë¹„ì–´ìˆì–´ ìˆì§€ ì•Šì„ ë•Œ
 	if (thisNode->node.leafNode.key[i] != 0)
-		// Ãß°¡ÇÒ ÀÚ¸®¸¦ ºñ¿ì±âÀ§ÇØ ¿À¸¥ÂÊÀ¸·Î ½¬ÇÁÆ®
+		// ì¶”ê°€í•  ìë¦¬ë¥¼ ë¹„ìš°ê¸°ìœ„í•´ ì˜¤ë¥¸ìª½ìœ¼ë¡œ ì‰¬í”„íŠ¸
 		for (j = DEGREE - 1; j > i; j--)
 		{
 			thisNode->node.leafNode.key[j] = thisNode->node.leafNode.key[j - 1];
 			thisNode->node.leafNode.data[j] = thisNode->node.leafNode.data[j - 1];
 		}
 
-	// Å°¿Í µ¥ÀÌÅÍ Ãß°¡ 
+	// í‚¤ì™€ ë°ì´í„° ì¶”ê°€ 
 	thisNode->node.leafNode.key[i] = insertKey;
 	thisNode->node.leafNode.data[i] = insertData;
-	// Ãß°¡ ÇÑ µÚ ³ëµå°¡ °¡µæ Â÷ÀÖ´ÂÁö È®ÀÎ
+	// ì¶”ê°€ í•œ ë’¤ ë…¸ë“œê°€ ê°€ë“ ì°¨ìˆëŠ”ì§€ í™•ì¸
 	if (thisNode->node.leafNode.key[DEGREE - 1] != 0) thisNode->full = FULL;
 }
 void InsertKey(float key, int data, Node *root)
 {
-	//Å° °ªÀº 0ÀÌ µÉ ¼ö ¾øÀ½ 0Àº ºñ¾îÀÖ´Â Å°·Î »ç¿ëÇÏ±â ¶§¹®
+	//í‚¤ ê°’ì€ 0ì´ ë  ìˆ˜ ì—†ìŒ 0ì€ ë¹„ì–´ìˆëŠ” í‚¤ë¡œ ì‚¬ìš©í•˜ê¸° ë•Œë¬¸
 	if (key == 0) return;
 	InsertKey1(key, data, FindKey(key, 0, root), root);
 }
 void initStack()
 {
-	// ½ºÅÃ ÃÊ±âÈ­
+	// ìŠ¤íƒ ì´ˆê¸°í™”
 	int i;
 	for (i = 0; i < MAX; i++)
 		Stack[i] = NULL;
 	StackPoint = 0;
 }
-void initBPlusTree(Node*& node)
+void DeleteKey2(Node *thisNode)
 {
 	/*
-	3 ¹Ì¸¸À¸·Î ÇÏ°Ô µÇ¸é »ğÀÔ°úÁ¤Áß
-	·çÆ®°¡ ¾Æ´Ñ ÀÎµ¦½º³ëµåÀÇ ¼­ºêÆ®¸® °³¼ö°¡ 1°³°¡ µÉ °æ¿ì°¡ ÀÖÀ½
-	µû¶ó¼­ Á¶°ÇÀÌ ¸ÂÁö ¾ÊÀ½
+	DeleteKey2 í•¨ìˆ˜
+	ì¸ë±ìŠ¤ ë…¸ë“œì˜ ì¬ë¶„ë°° ë° ë³‘í•©í•˜ëŠ” í•¨ìˆ˜
+
+	Node *thisNode : ì¬ ë¶„í•  ë° ë³‘í•©ì„ í•´ì•¼í•˜ëŠ” ë…¸ë“œ
+	*/
+	int i, j, k;
+	int thisPoint;
+	Node *parent;
+	Node *broNode;
+	Node *tempNode;
+	// í˜„ì¬ ë…¸ë“œê°€ ì¸ë±ìŠ¤ ë…¸ë“œê°€ ì•„ë‹ˆë¼ë©´ ì¢…ë£Œ
+	if (thisNode->type != INDEX) return;
+	// ë¶€ëª¨ë…¸ë“œ ì„¤ì •
+	parent = thisNode->parent;
+	// í˜„ì¬ ë…¸ë“œê°€ ë£¨íŠ¸ì´ë©´ ì¢…ë£Œ
+	if (parent == NULL) return;
+	// í˜„ì¬ ë…¸ë“œê°€ ë¶€ëª¨ ë…¸ë“œì˜ ëª‡ë²ˆì§¸ ì„œë¸ŒíŠ¸ë¦¬ ì¸ì§€ í™•ì¸
+	for (thisPoint = 0; thisPoint < DEGREE - 1; thisPoint++)
+		if (parent->node.indexNode.pointer[thisPoint] == thisNode) break;
+	// í˜„ì¬ë…¸ë“œê°€ ë¶€ëª¨ ë…¸ë“œì˜ 0ë²ˆì§¸ ì¸ë±ìŠ¤ê°€ ì•„ë‹ ë•Œ 
+	broNode = (thisPoint != 0) ? parent->node.indexNode.pointer[thisPoint - 1] : parent->node.indexNode.pointer[thisPoint + 1];
+	// í˜•ì¬ ë…¸ë“œì— ì„œë¸ŒíŠ¸ë¦¬ ìˆ˜ë¥¼ í™•ì¸í•œë‹¤.
+	for (i = 0; i < DEGREE; i++)
+		if (broNode->node.indexNode.pointer[i] == NULL) break;
+	// ë§Œì•½ í˜•ì¬ ë…¸ë“œê°€ í˜„ì¬ ë…¸ë“œì—ê²Œ ì„œë¸ŒíŠ¸ë¦¬ ë¥¼ ì¤„ë•Œ 50% ì´ìƒì´ ìœ ì§€ê°€ ì•ˆë ê²½ìš° ë³‘í•©ì„ í•œë‹¤.
+	if ((DEGREE % 2 == 0 && DEGREE / 2 >= i) || (DEGREE % 2 == 1 && DEGREE / 2 + 1 >= i)) // ë³‘í•©
+	{
+		// thisPoint == 0 ì¼ ë•Œ broNode ì™€ thisNode í¬ì¸í„°ë¥¼ êµì²´í•œë‹¤.
+		if (thisPoint == 0)
+		{
+			tempNode = thisNode;
+			thisNode = broNode;
+			broNode = tempNode;
+		}
+		else
+		{
+			thisPoint--;
+		}
+		// ì¶”ê°€í•  ê³³ì˜ í¬ì¸í„°ë¥¼ ì°¾ìŒ
+		for (j = 0; j < DEGREE; j++)
+			if (broNode->node.indexNode.pointer[j] == NULL) break;
+		broNode->node.indexNode.key[j - 1] = parent->node.indexNode.key[thisPoint];
+
+		// thisNode ì˜ í¬ì¸í„°ë¥¼ broNode ë…¸ë“œë¡œ ì˜®ê¹€
+		for (i = j, k = 0; i < DEGREE; i++, k++)
+		{
+			broNode->node.indexNode.pointer[i] = thisNode->node.indexNode.pointer[k];
+			broNode->node.indexNode.pointer[i]->parent = broNode;
+		}
+		// thisNode ì˜ í‚¤ë¥¼ broNode ë…¸ë“œë¡œ ì˜®ê¹€
+		for (i = j, k = 0; i < DEGREE - 1; i++, k++)
+			broNode->node.indexNode.key[i] = thisNode->node.indexNode.key[k];
+		broNode->full = FULL;
+		for (i = thisPoint + 1; i < DEGREE - 1; i++)
+			parent->node.indexNode.pointer[i] = parent->node.indexNode.pointer[i + 1];
+
+		parent->node.indexNode.pointer[i] = NULL;
+
+		for (i = thisPoint; i < DEGREE - 2; i++)
+			parent->node.indexNode.key[i] = parent->node.indexNode.key[i + 1];
+		parent->node.indexNode.key[i] = 0;
+		parent->full = 0;
+		free(thisNode);
+		// ì„œë¸Œ íŠ¸ë¦¬ì˜ ì¡°ê±´ì´ ë§Œì¡±í•˜ëŠ”ì§€ í™•ì¸ Mì°¨ ìˆ˜ì¼ë•Œ ìµœì†Œ 50% ì´ìƒ ì„œë¸ŒíŠ¸ë¦¬ ê°€ì§€ê³  ìˆì–´ì•¼í•¨
+		for (i = 0; i < DEGREE; i++)
+			if (parent->node.indexNode.pointer[i] == NULL) break;
+		// ë¶€ëª¨ë…¸ë“œê°€ root ì´ê³  ì„œë¸ŒíŠ¸ë¦¬ê°€ í•˜ë‚˜ ë°–ì— ì—†ë‹¤ë©´ index ë…¸ë“œê°€ í•„ìš” ì—†ìŒ
+		if (parent == root)
+		{
+			if ((i == 1))
+			{
+				root = parent->node.indexNode.pointer[0];
+				root->parent = NULL;
+				free(parent);
+			}
+			return;
+		}
+		// ì°¨ìˆ˜ê°€ ì§ìˆ˜ì´ê³  50% ì´ìƒ ìœ ì§€ ì´ê±°ë‚˜ ì°¨ìˆ˜ê°€ í™€ìˆ˜ì´ê³  66% ì´ìƒ ìœ ì§€ ë˜ë©´ ì¢…ë£Œ
+		if ((DEGREE % 2 == 0 && DEGREE / 2 <= i) || (DEGREE % 2 == 1 && DEGREE / 2 + 1 <= i)) return;
+		//50%ê°€ ìœ ì§€ê°€ ì•ˆë˜ë©´
+		DeleteKey2(parent);
+	}
+	else // ì¬ë¶„ë°°
+	{
+		if (thisPoint == 0)
+		{
+			// í‚¤ê°€ 0ì¸ ê³³ì„ ì°¾ì•„ì„œ key ê°’ì„ ì„¤ì •í•œë‹¤.
+			for (i = 0; i < DEGREE; i++)
+			{
+				if (thisNode->node.indexNode.key[i] == 0)
+				{
+					thisNode->node.indexNode.key[i] = parent->node.indexNode.key[thisPoint];
+					break;
+				}
+			}
+			// broNode ì—ì„œ ë¶€í„° ê°’í•˜ë‚˜ë¥¼ ë°›ì•„ ì˜¨ë‹¤.
+			thisNode->node.indexNode.pointer[i + 1] = broNode->node.indexNode.pointer[0];
+			thisNode->node.indexNode.pointer[i + 1]->parent = thisNode;
+			parent->node.indexNode.key[thisPoint] = broNode->node.indexNode.key[0];
+			broNode->full = 0;
+			// broNodeë¥¼ ì •ë ¬í•œë‹¤.
+			for (j = 0; j < DEGREE - 2; j++)
+			{
+				broNode->node.indexNode.key[j] = broNode->node.indexNode.key[j + 1];
+				broNode->node.indexNode.pointer[j] = broNode->node.indexNode.pointer[j + 1];
+			}
+			broNode->node.indexNode.key[j] = 0;
+			broNode->node.indexNode.pointer[j] = broNode->node.indexNode.pointer[j + 1];
+			broNode->node.indexNode.pointer[j + 1] = NULL;
+		}
+		else
+		{
+			// í˜•ì œ ë…¸ë“œì— ë§ˆì§€ë§‰ Key ìœ„ì¹˜ë¥¼ í™•ì¸í•œë‹¤.
+			for (i = 0; i < DEGREE; i++)
+				if (broNode->node.indexNode.pointer[i] == NULL) break;
+			i--;
+			// thisNodeë¥¼ ì •ë ¬í•œë‹¤.
+			for (j = DEGREE - 1; j > 0; j--)
+				thisNode->node.indexNode.pointer[j] = thisNode->node.indexNode.pointer[j - 1];
+			for (j = DEGREE - 2; j > 0; j--)
+				thisNode->node.indexNode.key[j] = thisNode->node.indexNode.key[j - 1];
+
+			// broNodeì—ì„œ ê°’ì„ ë°›ì•„ì˜¨ë‹¤.
+			thisNode->node.indexNode.pointer[0] = broNode->node.indexNode.pointer[i];
+			thisNode->node.indexNode.pointer[0]->parent = thisNode;
+
+			broNode->node.indexNode.pointer[i] = NULL;
+			thisNode->node.indexNode.key[0] = parent->node.indexNode.key[thisPoint - 1];
+
+			parent->node.indexNode.key[thisPoint - 1] = broNode->node.indexNode.key[i - 1];
+
+			broNode->node.indexNode.key[i - 1] = 0;
+			broNode->full = 0;
+		}
+	}
+}
+void DeleteKey1(Node *thisNode)
+{
+	/*
+	DeleteKey1 í•¨ìˆ˜
+	ë¦¬í”„ ë…¸ë“œì˜ ì¬ë¶„ë°° ë° ë³‘í•©í•˜ëŠ” í•¨ìˆ˜
+
+	Node *thisNode : ì¬ ë¶„í•  ë° ë³‘í•©ì„ í•´ì•¼í•˜ëŠ” ë…¸ë“œ
+	*/
+	int i, j;
+	int thisPoint;
+	Node *parent;
+	Node *broNode;
+	Node *tempNode;
+	// í˜„ì¬ ë…¸ë“œê°€ ë¦¬í”„ë…¸ë“œê°€ ì•„ë‹ˆë¼ë©´ ì¤‘ì§€
+	if (thisNode->type != LEAF) return;
+	// ë¶€ëª¨ ë…¸ë“œë¥¼ ì„¤ì •
+	parent = thisNode->parent;
+	// í˜„ì¬ ë¦¬í”„ë…¸ë“œê°€ ë£¨íŠ¸ì´ë©´ ì¢…ë£Œ
+	if (parent == NULL) return;
+	// í˜„ì¬ ë…¸ë“œê°€ ë¶€ëª¨ ë…¸ë“œì˜ ëª‡ë²ˆì§¸ ì„œë¸ŒíŠ¸ë¦¬ ì¸ì§€ í™•ì¸
+	for (thisPoint = 0; thisPoint < DEGREE - 1; thisPoint++)
+		if (parent->node.indexNode.pointer[thisPoint] == thisNode) break;
+	/*
+	í˜„ì¬ë…¸ë“œê°€ ë¶€ëª¨ ë…¸ë“œì˜
+	0ë²ˆì§¸ ì„œë¸ŒíŠ¸ë¦¬ê°€ ì•„ë‹ˆë©´ ì™¼ìª½ ì„œë¸ŒíŠ¸ë¦¬ì™€ ì¬ë¶„ë°° ë° ë³‘í•©
+	0ë²ˆì§¸ ì„œë¸ŒíŠ¸ë¦¬ë©´ ì˜¤ë¥¸ìª½ ì„œë¸ŒíŠ¸ë¦¬ì™€ ì¬ë¶„ë°° ë° ë³‘í•©
+	ì„ íƒëœ ì„œë¸ŒíŠ¸ë¦¬ë¥¼ í˜•ì œë…¸ë“œë¼ê³  í•œë‹¤.
+	*/
+	broNode = (thisPoint != 0) ? parent->node.indexNode.pointer[thisPoint - 1] : parent->node.indexNode.pointer[thisPoint + 1];
+	// í˜•ì œë…¸ë“œì— Key ìˆ˜ë¥¼ í™•ì¸í•œë‹¤.
+	for (i = 0; i < DEGREE; i++)
+		if (broNode->node.leafNode.key[i] == 0) break;
+	// ë§Œì•½ í˜•ì œë…¸ë“œì™€ ì¬ë¶„ì¬ë¥¼ í–ˆì„ê²½ìš° 50% ì´ìƒì´ ì•ˆë  ë•Œ ë³‘í•©ì„ í•œë‹¤.
+	if ((DEGREE % 2 == 0 && DEGREE / 2 >= i) || (DEGREE % 2 == 1 && DEGREE / 2 + 1 >= i)) // ë³‘í•©
+	{
+		/*
+		í˜„ì¬ë…¸ë“œê°€ 0ë²ˆì§¸ ì„œë¸ŒíŠ¸ë¦¬ë©´ broNodeì™€ thisNode ì´ë¦„ì„ ë°”ê¾¼ë‹¤.
+		ì´ëŠ” ë³‘í•©í•  ë•Œ ë…¸ë“œë¥¼ í•˜ë‚˜ ë²„ë ¤ì•¼ë˜ëŠ”ë° ì´ ë•Œ ì˜¤ë¥¸ìª½ì— ìˆëŠ” ë…¸ë“œë¥¼ ë²„ë¦°ë‹¤.
+		ì™¼ìª½ì— ìˆëŠ” ë…¸ë“œë¥¼ ë²„ë¦´ê²½ìš° ë¦¬í”„ë…¸ë“œë¼ë¦¬ ì—°ê²°ëœ í¬ì¸í„°ë“¤ì´ ë³µì¡í•´ì§„ë‹¤.
+		ë”°ë¼ì„œ ì´ë¦„ì„ ê·¸ëŒ€ë¡œ ì‚¬ìš©í•  ê²½ìš° ì˜¤ë¥¸ìª½ ë…¸ë“œê°€ ë²„ë ¤ì§€ê¸° ë•Œë¬¸ì— ì´ë¦„ì„ ë°”ê¾¼ë‹¤.
+		thisPoint ëŠ” broNodeë¥¼ ê°€ë¦¬í‚¤ëŠ” ì¸ë±ìŠ¤ë¡œì¨ ì‚¬ìš©í•œë‹¤.
+		*/
+		if (thisPoint == 0)
+		{
+			tempNode = thisNode;
+			thisNode = broNode;
+			broNode = tempNode;
+		}
+		else
+			thisPoint--;
+		// thisNodeëŠ” ë²„ë ¤ì§€ê¸° ë•Œë¬¸ì— ë‹¤ìŒ ë¦¬í”„ë…¸ë“œ í¬ì¸í„°ë¥¼ broNodeì— ì„¤ì •í•œë‹¤.
+		broNode->node.leafNode.next = thisNode->node.leafNode.next;
+		// thisNode ê°€ ê°€ì§€ê³  ìˆëŠ” Key ì™€ Data ë¥¼ broNode ë¡œ ì˜®ê¸´ë‹¤.
+		for (j = 0; j < DEGREE; j++)
+		{
+			// thisNodeê°€ ê°€ì§€ê³  ìˆëŠ” ì •ë³´ê°€ ë”ì´ìƒ ì—†ìœ¼ë©´ ë¹ ì ¸ë‚˜ê°„ë‹¤.
+			if (thisNode->node.leafNode.key[j] == 0) break;
+			// í˜„ì¬ ê°€ë¦¬í‚¤ê³ ìˆëŠ” Key ì™€ Data ë¥¼ broNodeë¡œ ì˜®ê¸´ë‹¤.
+			InsertKey1(thisNode->node.leafNode.key[j], thisNode->node.leafNode.data[j], broNode, root);
+		}
+		// ë³‘í•©ì„ í•˜ê²Œë˜ë©´ ê·¸ ë…¸ë“œëŠ” í•­ìƒ FULL ìƒíƒœê°€ ëœë‹¤.
+		broNode->full = FULL;
+		// thisNodeì˜ í¬ì¸í„°ë¥¼ ì œê±°í•˜ê¸° ìœ„í•´ ë¶€ëª¨ë…¸ë“œë¥¼ ì •ë ¬í•œë‹¤.
+		for (i = thisPoint + 1; i < DEGREE - 1; i++)
+			parent->node.indexNode.pointer[i] = parent->node.indexNode.pointer[i + 1];
+
+		parent->node.indexNode.pointer[i] = NULL;
+		for (i = thisPoint; i < DEGREE - 2; i++)
+			parent->node.indexNode.key[i] = parent->node.indexNode.key[i + 1];
+		parent->node.indexNode.key[i] = 0;
+		// ì œê±° ë˜ì—ˆê¸° ë•Œë¬¸ì— í•­ìƒ ë¶€ëª¨ë…¸ë“œëŠ” FULL ìƒíƒœê°€ ì•„ë‹ˆê²Œëœë‹¤.
+		parent->full = 0;
+		// thisNodeë¥¼ ì œê±°í•œë‹¤.
+		free(thisNode);
+		// ì¸ë±ìŠ¤ë…¸ë“œê°€ ëª‡ê°œì˜ ì„œë¸ŒíŠ¸ë¦¬ë¥¼ ê°€ì§€ê³  ìˆëŠ”ì§€ í™•ì¸í•œë‹¤.
+		for (i = 0; i < DEGREE; i++)
+			if (parent->node.indexNode.pointer[i] == NULL) break;
+		// ì¸ë±ìŠ¤ë…¸ë“œê°€ root ì´ê³  ì„œë¸ŒíŠ¸ë¦¬ê°€ í•˜ë‚˜ ë°–ì— ì—†ë‹¤ë©´ index ë…¸ë“œê°€ í•„ìš” ì—†ìŒ
+		if (parent == root)
+		{
+			if ((i == 1))
+			{
+				root = parent->node.indexNode.pointer[0];
+				root->parent = NULL;
+				free(parent);
+			}
+			return;
+		}
+		// ì°¨ìˆ˜ê°€ ì§ìˆ˜ì´ê³  50% ì´ìƒ ìœ ì§€ ì´ê±°ë‚˜ ì°¨ìˆ˜ê°€ í™€ìˆ˜ì´ê³  66% ì´ìƒ ìœ ì§€ ë˜ë©´ ì¢…ë£Œ
+		if ((DEGREE % 2 == 0 && DEGREE / 2 <= i) || (DEGREE % 2 == 1 && DEGREE / 2 + 1 <= i)) return;
+		//50%ê°€ ìœ ì§€ê°€ ì•ˆë˜ë©´
+		DeleteKey2(parent);
+	}
+	else // ì¬ë¶„ë°°
+	{
+		/*
+		ì„œë¸ŒíŠ¸ë¦¬ê°€ 0ì¼ë•ŒëŠ” ì˜¤ë¥¸ìª½ê³¼ ì¬ë¶„ë°°ë¥¼
+		0ì´ ì•„ë‹ë•ŒëŠ” ì™¼ìª½ê³¼ ì¬ë¶„ë°°ë¥¼ í•´ì•¼í•˜ê¸° ë•Œë¬¸ì— ë‚˜ëˆ”
+		ë˜í•œ ì¬ë¶„ë°°ëŠ” ë¶€ëª¨ ì¸ë±ìŠ¤ë…¸ë“œì˜ ì„œë¸ŒíŠ¸ë¦¬ ìˆ˜ë¥¼ ë°”ê¾¸ì§€ ì•Šê¸° ë•Œë¬¸ì—
+		ì¸ë±ìŠ¤ë…¸ë“œì˜ 50%ì¡°ê±´ì„ ê²€ì‚¬í•˜ì§€ ì•Šì•„ë„ ë¨
+		*/
+		if (thisPoint == 0)
+		{
+			/*
+			ì˜¤ë¥¸ìª½ì— ìˆëŠ” í˜•ì œë…¸ë“œì—ì„œ ê°’ í•˜ë‚˜ë¥¼ ê°€ì ¸ì˜¨ë‹¤.
+			í•˜ë‚˜ë§Œ ê°€ì ¸ì˜¤ëŠ” ì´ìœ ëŠ” ì‚­ì œ ë˜ëŠ” ê°’ì´ í•˜ë‚˜ì”© ì´ë£¨ì–´ì§€ê¸° ë•Œë¬¸ì—
+			50%ê°€ ìœ ì§€ê°€ ì•ˆëœë‹¤ë©´ ê·¸ê²ƒì€ í•˜ë‚˜ê°€ ë¶€ì¡±í•œ ê²ƒì´ë‹¤.
+			*/
+			InsertKey1(broNode->node.leafNode.key[0], broNode->node.leafNode.data[0], thisNode, root);
+			/*
+			ë¶€ëª¨ë…¸ë“œì˜ ì¸ë±ìŠ¤ë¥¼ í˜•ì œë…¸ë“œì—ì„œ ê°€ì ¸ì˜¨ ê°’ìœ¼ë¡œ ë³€ê²½í•œë‹¤.
+			í˜„ì¬ë…¸ë“œë³´ë‹¤ í˜•ì œë…¸ë“œê°€ ì˜¤ë¥¸ìª½ì— ìˆê¸° ë•Œë¬¸ì—
+			ë¬´ì¡°ê±´ í˜•ì œë…¸ë“œì—ì„œ ê°€ì ¸ì˜¨ ê°’ì´ í¬ê¸° ë•Œë¬¸ì´ë‹¤.
+			*/
+			parent->node.indexNode.key[thisPoint] = broNode->node.leafNode.key[0];
+			// í˜•ì œë…¸ë“œë¥¼ ì •ë ¬í•œë‹¤.
+			for (i = 0; i < DEGREE - 1; i++)
+			{
+				broNode->node.leafNode.key[i] = broNode->node.leafNode.key[i + 1];
+				broNode->node.leafNode.data[i] = broNode->node.leafNode.data[i + 1];
+			}
+			broNode->node.leafNode.key[i] = 0;
+			broNode->node.leafNode.data[i] = 0;
+			// í•˜ë‚˜ê°€ ì œê±°ë˜ì—ˆê¸° ë•Œë¬¸ì— ë¬´ì¡°ê±´ FULL ìƒíƒœê°€ ì•„ë‹ˆë‹¤.
+			broNode->full = 0;
+		}
+		else
+		{
+			// ì™¼ìª½ì— í˜•ì œë…¸ë“œì´ë¯€ë¡œ í˜•ì œ ë…¸ë“œì—ì„œ ê°€ì ¸ì˜¬ ë§ˆì§€ë§‰ ê°’ì„ ê²€ìƒ‰í•œë‹¤.
+			for (i = 0; i < DEGREE; i++)
+				if (broNode->node.leafNode.key[i] == 0) break;
+			i--;
+			// ê²€ìƒ‰ëœ Key ì™€ Data ë¥¼ í˜„ì¬ë…¸ë“œì— ì¶”ê°€ ì‹œí‚¨ë‹¤.
+			InsertKey1(broNode->node.leafNode.key[i], broNode->node.leafNode.data[i], thisNode, root);
+			// ê°€ì ¸ì˜¨ Key ì™€ Data ë¥¼ ì‚­ì œí•˜ê³  ë¬´ì¡°ê±´ FULL ìƒíƒœê°€ ì•„ë‹˜
+			broNode->node.leafNode.key[i] = 0;
+			broNode->node.leafNode.data[i] = 0;
+			broNode->full = 0;
+			// í˜•ì œë…¸ë“œë¥¼ ê°€ë¦¬í‚¤ëŠ” ì¸ë±ìŠ¤ë¥¼ ë°”ê¾¸ì–´ì¤€ë‹¤.
+			parent->node.indexNode.key[thisPoint - 1] = broNode->node.leafNode.key[i - 1];
+		}
+	}
+}
+void DeleteKey(float deleteKey)
+{
+	/*
+	DeleteKey í•¨ìˆ˜
+	íŠ¸ë¦¬ ì—ì„œ í˜„ì¬ í‚¤ë¥¼ ì‚­ì œ í•œë‹¤.
+	ì‚­ì œí›„ ê·¸ ë…¸ë“œê°€ 50%ì´ìƒ ìœ ì§€ê°€ ë˜ì§€ ì•ŠëŠ”ë‹¤ë©´ DeleteKey1 ì„ ì‹¤í–‰í•œë‹¤.
+	int deleteKey : ì‚­ì œí•  í‚¤
+	*/
+	int i, j;
+	Node *thisNode;
+	// ì¡´ì¬í•˜ì§€ ì•ŠëŠ” í‚¤ë¼ë©´ ì‚­ì œ í•  ìˆ˜ ì—†ìŒ
+	if ((thisNode = FindKey(deleteKey, 1, root)) == NULL) return;
+	// key ê°’ê³¼ ê°™ì€ Key ê°€ ì–´ëŠ ìœ„ì¹˜ì— ìˆëŠ”ì§€ í™•ì¸
+	for (i = 0; i < DEGREE; i++)
+		if (fabsf(thisNode->node.leafNode.key[i] - deleteKey) < EPS) break;
+	// ê·¸ ê³³ì— ìˆëŠ” Key ë¥¼ ì‚­ì œ
+	thisNode->node.leafNode.key[i] = 0;
+	thisNode->node.leafNode.data[i] = 0;
+
+	// ë¹„ì›Œ ìˆëŠ” ê³³ì„ ë©”ê¾¸ê¸° ìœ„í•´ ë‹¤ì‹œ ì •ë ¬
+	for (j = i; j < DEGREE - 1; j++)
+	{
+		thisNode->node.leafNode.key[j] = thisNode->node.leafNode.key[j + 1];
+		thisNode->node.leafNode.data[j] = thisNode->node.leafNode.data[j + 1];
+	}
+	thisNode->node.leafNode.key[j] = 0;
+	thisNode->node.leafNode.data[j] = 0;
+	//ì§€ì› ë‹¤ë©´ ê·¸ ìƒíƒœëŠ” ë¬´ì¡°ê±´ FULL ì´ ì•„ë‹˜
+	thisNode->full = 0;
+	// í˜„ì¬ Key ê°€ ì–´ëŠì •ë„ ìˆëŠ”ì§€ í™•ì¸
+	for (i = 0; i < DEGREE; i++)
+		if (thisNode->node.leafNode.key[i] == 0) break;
+	// ì°¨ìˆ˜ê°€ ì§ìˆ˜ì´ê³  50% ì´ìƒ ìœ ì§€, ì°¨ìˆ˜ê°€ í™€ìˆ˜ì´ê³  66% ì´ìƒ ìœ ì§€ ë˜ë©´ ì¢…ë£Œ
+	if ((DEGREE % 2 == 0 && DEGREE / 2 <= i) || (DEGREE % 2 == 1 && DEGREE / 2 + 1 <= i)) return;
+	//50%ê°€ ìœ ì§€ê°€ ì•ˆë˜ë©´ DeleteKey1 ì„ ì´ìš©í•˜ì—¬ ì¬ë¶„ë°° ë° ë³‘í•© ì‹¤í–‰
+	DeleteKey1(thisNode);
+}
+void initBPlusTree()
+{
+	/*
+	3 ë¯¸ë§Œìœ¼ë¡œ í•˜ê²Œ ë˜ë©´ ì‚½ì…ê³¼ì •ì¤‘
+	ë£¨íŠ¸ê°€ ì•„ë‹Œ ì¸ë±ìŠ¤ë…¸ë“œì˜ ì„œë¸ŒíŠ¸ë¦¬ ê°œìˆ˜ê°€ 1ê°œê°€ ë  ê²½ìš°ê°€ ìˆìŒ
+	ë”°ë¼ì„œ ì¡°ê±´ì´ ë§ì§€ ì•ŠìŒ
 	*/
 
 	if (DEGREE < 3)
 	{
-		printf("Â÷¼ö°¡ 3¹Ì¸¸ÀÌ µÉ¼ö ¾ø½À´Ï´Ù.\n");
+		printf("ì°¨ìˆ˜ê°€ 3ë¯¸ë§Œì´ ë ìˆ˜ ì—†ìŠµë‹ˆë‹¤.\n");
 		exit(1);
 	}
 
-	// ·çÆ® »ı¼º ¹× ÃÊ±âÈ­
+	// ë£¨íŠ¸ ìƒì„± ë° ì´ˆê¸°í™”
+	root = (Node *)malloc(sizeof(Node));
+	memset((char *)root, 0, sizeof(Node));
+	root->type = LEAF;
+}
+void initBPlusTree2()
+{
+	/*
+	3 ë¯¸ë§Œìœ¼ë¡œ í•˜ê²Œ ë˜ë©´ ì‚½ì…ê³¼ì •ì¤‘
+	ë£¨íŠ¸ê°€ ì•„ë‹Œ ì¸ë±ìŠ¤ë…¸ë“œì˜ ì„œë¸ŒíŠ¸ë¦¬ ê°œìˆ˜ê°€ 1ê°œê°€ ë  ê²½ìš°ê°€ ìˆìŒ
+	ë”°ë¼ì„œ ì¡°ê±´ì´ ë§ì§€ ì•ŠìŒ
+	*/
+
+	if (DEGREE < 3)
+	{
+		printf("ì°¨ìˆ˜ê°€ 3ë¯¸ë§Œì´ ë ìˆ˜ ì—†ìŠµë‹ˆë‹¤.\n");
+		exit(1);
+	}
+
+	// ë£¨íŠ¸ ìƒì„± ë° ì´ˆê¸°í™”
 	node = (Node *)malloc(sizeof(Node));
 	memset((char *)node, 0, sizeof(Node));
 	node->type = LEAF;
 }
 void addStack(Node *thisNode)
 {
-	// ½ºÅÃÀÌ °¡µæÃ¡´Ù¸é Á¾·á
+	// ìŠ¤íƒì´ ê°€ë“ì°¼ë‹¤ë©´ ì¢…ë£Œ
 	if (StackPoint == MAX)
 	{
-		printf("½ºÅÃÀÌ °¡µæÃ¡½À´Ï´Ù. ½ºÅÃ Å©±â¸¦ ´Ã·Á¼­ ´Ù½Ã ½ÃµµÇÏ¼¼¿ä ~\n");
+		printf("ìŠ¤íƒì´ ê°€ë“ì°¼ìŠµë‹ˆë‹¤. ìŠ¤íƒ í¬ê¸°ë¥¼ ëŠ˜ë ¤ì„œ ë‹¤ì‹œ ì‹œë„í•˜ì„¸ìš” ~\n");
 		return;
 	}
 	Stack[StackPoint++] = thisNode;
 }
 Node *getStack()
 {
-	// ½ºÅÃÀÌ ºñ¾îÀÖ´Ù¸é Á¾·á
+	// ìŠ¤íƒì´ ë¹„ì–´ìˆë‹¤ë©´ ì¢…ë£Œ
 	return (StackPoint == 0) ? NULL : Stack[--StackPoint];
 }
 Node *FindKey(float AddKey, int inverse, Node *thisNode)
 {
 	/*
 	node* FindKey(int AddKey)
-	Å°°¡ ÀÌ¹Ì Á¸ÀçÇÏ´ÂÁö È®ÀÎ
-	inverse °¡ 0ÀÏ ¶§
-	¸¸¾à Á¸ÀçÇÑ´Ù¸é NULL À» ¹İÈ¯
-	¸¸¾à Á¸ÀçÇÏÁö ¾Ê´Â´Ù¸é ¸¶Áö¸· °Ë»çÇÑ ¸®ÇÁ³ëµå¸¦ ¹İÈ¯
-	inverse °¡ 0ÀÌ ¾Æ´Ò¶§ ¹İ´ë·Î ¹İÈ¯
+	í‚¤ê°€ ì´ë¯¸ ì¡´ì¬í•˜ëŠ”ì§€ í™•ì¸
+	inverse ê°€ 0ì¼ ë•Œ
+	ë§Œì•½ ì¡´ì¬í•œë‹¤ë©´ NULL ì„ ë°˜í™˜
+	ë§Œì•½ ì¡´ì¬í•˜ì§€ ì•ŠëŠ”ë‹¤ë©´ ë§ˆì§€ë§‰ ê²€ì‚¬í•œ ë¦¬í”„ë…¸ë“œë¥¼ ë°˜í™˜
+	inverse ê°€ 0ì´ ì•„ë‹ë•Œ ë°˜ëŒ€ë¡œ ë°˜í™˜
 	*/
 	int i;
 	while (1)
 	{
-		// ³ëµå°¡ ¸®ÇÁ°¡ ¾Æ´Ò¶§
+		// ë…¸ë“œê°€ ë¦¬í”„ê°€ ì•„ë‹ë•Œ
 		if (thisNode->type != LEAF)
 		{
-			// Ãß°¡ÇÒ key °ªº¸´Ù Å« °ªÀ» Ã£À½
+			// ì¶”ê°€í•  key ê°’ë³´ë‹¤ í° ê°’ì„ ì°¾ìŒ
 			for (i = 0; i < DEGREE - 1; i++)
 				if (thisNode->node.indexNode.key[i] >= AddKey || thisNode->node.indexNode.key[i] == 0) break;
 
-			// thisNode ±³Ã¼
+			// thisNode êµì²´
 			thisNode = (i == DEGREE - 1) ? thisNode->node.indexNode.pointer[DEGREE - 1] : thisNode = thisNode->node.indexNode.pointer[i];
 		}
 		else
 		{
-			// key °ª°ú °°Àº Key °¡ ÀÖ´ÂÁö È®ÀÎ
+			// key ê°’ê³¼ ê°™ì€ Key ê°€ ìˆëŠ”ì§€ í™•ì¸
 			for (i = 0; i < DEGREE; i++)
 				if (fabsf(thisNode->node.leafNode.key[i] - AddKey) < EPS)
 					return (inverse == 0) ? NULL : thisNode;
