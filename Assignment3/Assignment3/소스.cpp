@@ -568,7 +568,6 @@ int writeProfessorIndexFile(FILE *& fout)
 /*------------------------------------------------------------------------------------------------------------------------------------*/
 
 void exactSearch(Directory directory, int key, int hashMapSize, string type) {
-
 	map<int, int>::iterator it;
 	int bucketNum = directory.hash(key);
 
@@ -578,28 +577,25 @@ void exactSearch(Directory directory, int key, int hashMapSize, string type) {
 
 	if (it != hashTable.end()) // 찾았을 경우
 	{
-		printf("%d %d\n", it->first, it->second);
+		//printf("%d %d\n", it->first, it->second);
 		FILE * fin;
 		if (type == "Students") {
-
-
 			for (int j = 0; j < studentCnt / numOfStudentRecords + 1; j++) {
 				for (int i = 0; i < numOfStudentRecords; i++) {
 
 					if (readStudentBlocks[j].records[i].studentID == it->first) {
-						cout << readStudentBlocks[j].records[i].name << " " << readStudentBlocks[j].records[i].studentID << " " << readStudentBlocks[j].records[i].score << " " << readStudentBlocks[j].records[i].advisorID << endl;
+						cout << readStudentBlocks[j].records[i].studentID << " " << readStudentBlocks[j].records[i].name << " " << readStudentBlocks[j].records[i].score << " " << readStudentBlocks[j].records[i].advisorID << endl;
 						fprintf(fout, "%d %s %f %d\n", readStudentBlocks[j].records[i].studentID, readStudentBlocks[j].records[i].name, readStudentBlocks[j].records[i].score, readStudentBlocks[j].records[i].advisorID);
 					}
 				}
 			}
 		}
 		else if (type == "Professors") {
-
 			for (int j = 0; j < professorCnt / numOfProfessorRecords + 1; j++) {
 				for (int i = 0; i < numOfProfessorRecords; i++) {
 
 					if (readProfessorBlocks[j].records[i].professorID == it->first) {
-						cout << readProfessorBlocks[j].records[i].name << " " << readProfessorBlocks[j].records[i].professorID << " " << readProfessorBlocks[j].records[i].salary << endl;
+						cout << readProfessorBlocks[j].records[i].professorID << " " << readProfessorBlocks[j].records[i].name << " " << readProfessorBlocks[j].records[i].salary << endl;
 						fprintf(fout, "%d %s %d\n", readProfessorBlocks[j].records[i].professorID, readProfessorBlocks[j].records[i].name, readProfessorBlocks[j].records[i].salary);
 					}
 				}
@@ -609,6 +605,7 @@ void exactSearch(Directory directory, int key, int hashMapSize, string type) {
 }
 
 
+
 /*------------------------------------------------------------------------------------------------------------------------------------*/
 /*                                                       Range Search                                                                 */
 /*------------------------------------------------------------------------------------------------------------------------------------*/
@@ -616,25 +613,38 @@ void exactSearch(Directory directory, int key, int hashMapSize, string type) {
 void rangeSearch(Node*& root, float fromKey, float toKey, string type)
 {
 	FILE * fout = fopen("query.res", "a");
-	Node *thisNode;
+	Node *thisNode = root;
 	int i;
-	// key가 존재하는지 확인
-	if ((thisNode = FindKey(fromKey, 1, root)) == NULL)
+	
+	//from 범위 리프노드까지 내려감
+	while (thisNode->type != LEAF)
 	{
-		printf("Key = %.1f\n", fromKey);
-		puts("키가 존재하지 않습니다.\n");
-		return;
+		// from의 범위까지 내려감
+		for (i = 0; fabsf(thisNode->node.indexNode.key[i] - fromKey) < EPS || fromKey < thisNode->node.indexNode.key[i]; i++);
+		thisNode = thisNode->node.indexNode.pointer[i];
 	}
 
+	// fromKey의 위치까지 이동
+	for (i = 0; thisNode->node.leafNode.key[i] < fromKey ; i++);
+	
+
+	// key가 존재하는지 확인
+	// if ((thisNode = FindKey(fromKey, 1, root)) == NULL)
+	//{
+	//	printf("Key = %f\n", fromKey);
+	//	puts("키가 존재하지 않습니다.\n");
+	//	return;
+	//}
+
 	// key 값과 같은 Key 가 있는지 확인
-	for (i = 0; i < DEGREE; i++)
-		if (fabsf(thisNode->node.leafNode.key[i] - fromKey) < EPS)
-			break;
+	//for (i = 0; i < DEGREE; i++)
+	//	if (fabsf(thisNode->node.leafNode.key[i] - fromKey) < EPS || (thisNode->node.leafNode.key[i] <= fromKey && fromKey <= thisNode->node.leafNode.key[i+1]))
+	//		break;
 
 	// from의 위치를 찾음
 	int fromBlockNum = thisNode->node.leafNode.data[i];
-	printf("Key = %.f\n", fromKey);
-	printf("BlockNumber = %d\n", fromBlockNum);
+	//printf("Key = %f\n", fromKey);
+	//printf("BlockNumber = %d\n", fromBlockNum);
 
 	// from부터 to까지 읽으면서 해당 블록 가져옴
 	map<float, int> duplicate; // 중복 제거용
@@ -647,7 +657,7 @@ void rangeSearch(Node*& root, float fromKey, float toKey, string type)
 			fp = fopen("Students.DB", "rb");
 			for (; fabsf(thisNode->node.leafNode.key[i] - toKey) < EPS || thisNode->node.leafNode.key[i] < toKey; i++)
 			{
-				fseek(fp, thisNode->node.leafNode.data[i], SEEK_SET); // 파일 커서 옮겨서 블록 읽어옴
+				fseek(fp, sizeof(StudentBlock) * thisNode->node.leafNode.data[i], SEEK_SET); // 파일 커서 옮겨서 블록 읽어옴
 				StudentBlock * records = new StudentBlock();
 				fread((char*)records, sizeof(StudentBlock), 1, fp);
 				for (int j = 0; j < studentCnt / numOfStudentRecords + 1; j++) // 그 안에 레코드 하나씩 읽음
@@ -670,10 +680,10 @@ void rangeSearch(Node*& root, float fromKey, float toKey, string type)
 			fp = fopen("Professors.DB", "rb");
 			for (; fabsf(thisNode->node.leafNode.key[i] - toKey) < EPS || thisNode->node.leafNode.key[i] < toKey; i++)
 			{
-				fseek(fp, thisNode->node.leafNode.data[i], SEEK_SET); // 파일 커서 옮겨서 블록 읽어옴
+				fseek(fp, sizeof(ProfessorBlock) * thisNode->node.leafNode.data[i], SEEK_SET); // 파일 커서 옮겨서 블록 읽어옴
 				ProfessorBlock * records = new ProfessorBlock();
 				fread((char*)records, sizeof(ProfessorBlock), 1, fp);
-				for (int j = 0; j < professorCnt / numOfProfessorRecords + 1; j++) // 그 안에 레코드 하나씩 읽음
+				for (int j = 0; j < (numOfProfessorRecords > professorCnt ? professorCnt : numOfProfessorRecords); j++) // 그 안에 레코드 하나씩 읽음
 				{
 					if ((fromKey < records->records[j].salary && records->records[j].salary < toKey) || fabsf(records->records[j].salary - fromKey) < EPS || fabsf(records->records[j].salary - toKey) < EPS)
 					{
@@ -691,7 +701,6 @@ void rangeSearch(Node*& root, float fromKey, float toKey, string type)
 		thisNode = thisNode->node.leafNode.next;
 	}
 }
-
 
 /*------------------------------------------------------------------------------------------------------------------------------------*/
 /*                                          Block Oriented Nested Join Operation                                                      */
@@ -1330,49 +1339,50 @@ int main()
 				}
 			}
 			break;
-
 			// 수술해야할 부분 시작 //
 		case 7:
+			printf("\n");
 			for (int i = 0; i < queryCnt; i++) {
+				printf("%d.\n", i + 1);
 				tokenizer.setString(querySet[i]);
 				string querytype = tokenizer.next();
 				if (querytype == "Search-Exact") {
-					printf("\n<Exact Match Search Operation>\n");
+					printf("<Exact Search Operation>\n");
 					string type = tokenizer.next();
 					tokenizer.next();
 					if (type == "Students") {
-						string arg1 = tokenizer.next();
-						int arg = atoi(arg1.c_str());
-						exactSearch(studentDirectory, arg, studentCnt, "Students");
+						exactSearch(studentDirectory, atoi(tokenizer.next().c_str()), studentCnt, "Students");
 					}
 					else if (type == "Professors") {
-						string arg1 = tokenizer.next();
-						int arg = atoi(arg1.c_str());
-						exactSearch(professorDirectory, arg, professorCnt, "Professors");
+						exactSearch(professorDirectory, atoi(tokenizer.next().c_str()), professorCnt, "Professors");
 					}
 					printf("\n");
 				}
 				else if (querytype == "Search-Range") {
-					printf("\n<Range Search Operation>\n");
+					printf("<Range Search Operation>\n");
 					string type = tokenizer.next();
-					tokenizer.next();
+					// tokenizer.next();
 					if (type == "Students") {
-						rangeSearch(studentRoot, atoi(tokenizer.next().c_str()), atoi(tokenizer.next().c_str()), "Students");
+						float arg = atof(tokenizer.next().c_str());
+						float arg2 = atof(tokenizer.next().c_str());
+						rangeSearch(studentRoot, arg, arg2, "Students");
 					}
 					else if (type == "Professors") {
-						rangeSearch(professorRoot, atoi(tokenizer.next().c_str()), atoi(tokenizer.next().c_str()), "Professors");
+						float arg = atof(tokenizer.next().c_str());
+						float arg2 = atof(tokenizer.next().c_str());
+						rangeSearch(professorRoot, arg, arg2, "Professors");
 					}
 					printf("\n");
 				}
 				else if (querytype == "Join") {
-					printf("\n<Blck Oriented Nested Join Operation>\n");
+					printf("<Join Operation>\n");
 					join();
+					printf("Success.\n");
 					printf("\n");
 				}
 			}
 			break;
 			// 수술해야할 부분 끝 //
-
 		case 8:
 			return 0;
 			break;
@@ -1384,3 +1394,4 @@ int main()
 	system("pause");
 	return 0;
 }
+
