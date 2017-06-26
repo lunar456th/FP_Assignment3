@@ -1,3 +1,6 @@
-2
+5
 Search-Exact, Students, StudentID, 26071
-Search-Exact, Professors, ProfID, 8152
+Search-Exact, Professors, ProfID, 8
+Search-Range, Students, 1.20002, 1.20004
+Search-Range, Professors, 100001, 100500
+Join
